@@ -1,0 +1,93 @@
+name: release
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version-name.outputs.version }}
+    steps:
+      - id: version-name
+        run: |
+          VERSION=$(echo ${{ github.ref }} | sed -e "s|refs/tags/||g")
+          echo "::set-output name=version::$VERSION"
+  build-binary:
+    needs: [version]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            binary: dgs-codegen
+            os-name: linux
+          - os: macos-latest
+            binary: dgs-codegen
+            os-name: macos
+          - os: windows-latest
+            binary: dgs-codegen.exe
+            os-name: windows
+    steps:
+      - uses: actions/checkout@v2
+      - uses: DeLaGuardo/setup-graalvm@3.1
+        with:
+          graalvm-version: '21.0.0.java11'
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - run: ./gradlew nativeImage
+      - run: ls
+        working-directory: ./build/executable
+      - run: |
+          Compress-Archive -DestinationPath dgs-codegen-${{ matrix.os-name }}-amd64-${{ needs.version.outputs.version }}.zip -Path ${{ matrix.binary }}
+        working-directory: ./build/executable
+        shell: pwsh
+        if: runner.os == 'Windows'
+      - run: |
+          zip dgs-codegen-${{ matrix.os-name }}-amd64-${{ needs.version.outputs.version }}.zip ${{ matrix.binary }}
+        working-directory: ./build/executable
+        if: runner.os != 'Windows'
+      - uses: actions/upload-artifact@v2
+        with:
+          name: binary-${{ matrix.os-name }}
+          path: ./build/executable/*.zip
+  create-release:
+    needs: build-binary
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+  upload-release:
+    needs: [version, build-binary, create-release]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os-name: [linux, macos, windows]
+    steps:
+      - id: zip-name
+        run: |
+          ZIP=dgs-codegen-${{ matrix.os-name }}-amd64-${{ needs.version.outputs.version }}.zip
+          echo "::set-output name=zip::$ZIP"
+      - uses: actions/download-artifact@v2
+        with:
+          name: binary-${{ matrix.os-name }}
+          path: ./build/executable/
+      - uses: actions/upload-release-asset@v1
+        id: upload_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./build/executable/${{ steps.zip-name.outputs.zip }}
+          asset_name: ${{ steps.zip-name.outputs.zip }}
+          asset_content_type: application/zip
