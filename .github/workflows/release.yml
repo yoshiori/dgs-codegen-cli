@@ -37,8 +37,6 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
       - run: ./gradlew nativeImage
-      - run: ls
-        working-directory: ./build/executable
       - run: |
           Compress-Archive -DestinationPath dgs-codegen-${{ matrix.os-name }}-amd64-${{ needs.version.outputs.version }}.zip -Path ${{ matrix.binary }}
         working-directory: ./build/executable
