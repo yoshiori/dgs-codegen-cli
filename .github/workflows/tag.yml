@@ -18,7 +18,6 @@ jobs:
           VERSION=$(grep -e "graphql-dgs-codegen-core:" build.gradle.kts | sed -e "s|implementation(\"com\.netflix\.graphql\.dgs\.codegen\:graphql-dgs-codegen-core\:\(.*\)\")|\1|g")
           echo "::set-output name=version::$VERSION"
       - name: add-tag
-        uses: actions/checkout@v2
         run: |
             echo ${{ steps.new-version.outputs.version }}
             git tag ${{ steps.new-version.outputs.version }}
