@@ -2,7 +2,7 @@ import org.mikeneck.graalvm.GenerateNativeImageConfigTask
 
 plugins {
   id("java")
-  id("org.mikeneck.graalvm-native-image") version "v1.0.0"
+  id("org.mikeneck.graalvm-native-image") version "1.4.1"
 }
 
 repositories {
