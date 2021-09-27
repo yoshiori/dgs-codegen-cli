@@ -1,0 +1,26 @@
+name: Create Git Tag
+on:
+  pull_request:
+    branches:
+      - master
+    types: [closed]
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: new version
+        id: new-version
+        run: |
+          VERSION=$(grep -e "graphql-dgs-codegen-core:" build.gradle.kts | sed -e "s|implementation(\"com\.netflix\.graphql\.dgs\.codegen\:graphql-dgs-codegen-core\:\(.*\)\")|\1|g")
+          echo "::set-output name=version::$VERSION"
+      - name: add-tag
+        uses: actions/checkout@v2
+        run: |
+            echo ${{ steps.new-version.outputs.version }}
+            git tag ${{ steps.new-version.outputs.version }}
+            git push origin ${{ steps.new-version.outputs.version }}
+    if: github.event.pull_request.merged == true
