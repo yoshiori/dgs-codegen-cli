@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-  implementation("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-core:5.1.17")
+  implementation("com.netflix.graphql.dgs.codegen:graphql-dgs-codegen-core:5.6.9")
 }
 
 nativeImage {
